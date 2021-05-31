@@ -18,21 +18,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-FROM balenalib/rpi-raspbian:buster
+FROM alpine:3.14
 
-# https://github.com/ehough/docker-nfs-server/pull/3#issuecomment-387880692
-ARG DEBIAN_FRONTEND=noninteractive
 
-# install the team-xbmc ppa
-RUN apt-get update                                                        && \
-    apt-get -y purge openssl                                              && \
-    apt-get -y --purge autoremove                                         && \
-    apt-get dist-upgrade                                                  && \
-# Bugfix for: installed kodi package post-installation script subprocess returned error exit status 1
-# either install udev or make the required directory 
-    sudo apt-get install uuid-dev                                         && \
-#    mkdir -p /etc/udev/rules.d
-    rm -rf /var/lib/apt/lists/*                                           
+
+# # install the team-xbmc ppa
+# RUN apt-get update                                                        && \
+#     apt-get -y purge openssl                                              && \
+#     apt-get -y --purge autoremove                                         && \
+#     apt-get dist-upgrade                                                  && \
+# # Bugfix for: installed kodi package post-installation script subprocess returned error exit status 1
+# # either install udev or make the required directory 
+#     sudo apt-get install uuid-dev                                         && \
+# #    mkdir -p /etc/udev/rules.d
+#     rm -rf /var/lib/apt/lists/*                                           
 
 # besides kodi, we will install a few extra packages:
 #  - ca-certificates              allows Kodi to properly establish HTTPS connections
@@ -48,57 +47,18 @@ RUN apt-get update                                                        && \
 #  - pulseaudio                   in case the user prefers PulseAudio instead of ALSA
 #  - tzdata                       necessary for timezone selection
 RUN packages="                                               \
-    fbset                                                         \
+    bash                                                     \
     ca-certificates                                          \
     kodi                                                     \
-    kodi-eventclients-kodi-send                              \
-    kodi-inputstream-adaptive                                \
-    kodi-inputstream-rtmp                                    \
-    kodi-peripheral-joystick                                 \
-    kodi-pvr-argustv                                         \
-    kodi-pvr-dvblink                                         \
-    kodi-pvr-dvbviewer                                       \
-    kodi-pvr-filmon                                          \
-    kodi-pvr-hdhomerun                                       \
-    kodi-pvr-hts                                             \
-    kodi-pvr-iptvsimple                                      \
-    kodi-pvr-mediaportal-tvserver                            \
-    kodi-pvr-mythtv                                          \
-    kodi-pvr-nextpvr                                         \
-    kodi-pvr-njoy                                            \
-    kodi-pvr-pctv                                            \
-    kodi-pvr-sledovanitv-cz                                  \
-    kodi-pvr-stalker                                         \
-    kodi-pvr-teleboy                                         \
-    kodi-pvr-vbox                                            \
-    kodi-pvr-vdr-vnsi                                        \
-    kodi-pvr-vuplus                                          \
-    kodi-pvr-wmc                                             \
-    kodi-pvr-zattoo                                          \
-    kodi-screensaver-biogenesis                              \
-    kodi-screensaver-matrixtrails                            \
-    kodi-screensaver-pyro                                    \
-    kodi-screensaver-stars                                   \
     lirc                                                     \
-    lirc-compat-remotes                                      \
-    locales                                                  \
     pulseaudio                                               \
-    libnss3                                                  \
+    py3-pycryptodomex                                        \
     tzdata"                                               && \
                                                              \
-    apt-get update                                        && \
-    apt-get install -y $packages                          
+    apk add --update-cache $packages                         \
+    && rm -fr /var/cache/apk/*                      
 
-# Add python for netflix plugin
-RUN sudo apt-get install python-pip python-crypto build-essential python-all-dev                   \
-                         python-setuptools python-wheel python-crypto-dbg                          \
-                         python-crypto-doc python-pip-whl                                       && \
-    pip install pycryptodomex                                                                   && \
-    ln -s /usr/lib/python2.7/dist-packages/Crypto /usr/lib/python2.7/dist-packages/Cryptodome   && \
-    apt-get -y --purge autoremove                                                               && \
-    rm -rf /var/lib/apt/lists/*
-
-RUN groupadd -g 9002 kodi && useradd -u 9002 -r -g kodi kodi && usermod -a -G video kodi
+RUN adduser --disabled-password -u 9002 kodi && addgroup kodi video
 
 ADD /asound.conf /etc/asound.conf
 
